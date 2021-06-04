@@ -1,0 +1,6 @@
+lainbot/src/testing/
+lainbot/src/util/refresh-page-token.py
+lainbot/src/api/tokens.json
+lainbot/src/api/__pycache__/
+lainbot/src/common/__pycache__/
+lainbot/src/util/__pycache__/
