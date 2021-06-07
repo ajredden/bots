@@ -1,132 +1,98 @@
 # rate limits: 300 tweets per 3 hours (100/hr), 1000 tweets per 24 hours
 
-import requests, json, base64, urllib.parse, os.path, time, sys
+# Exit codes:
+# -1: Unspecified error
+# 0: All clear
+# 1: Invalid argument
+# 2: Connection error
+# 3: Chunk upload unsuccessful
 
-sys.path.append("..")
-
+import json, os.path, requests, sys
 from requests_oauthlib import OAuth1
-import common.common
 
-raw = json.load(open("tokens.json"))
-api_key = raw["tokens"]["twitter"]["api_key"]
-api_secret = raw["tokens"]["twitter"]["api_secret"]
-access_token = raw["tokens"]["twitter"]["access_token"]
-access_token_secret = raw["tokens"]["twitter"]["access_token_secret"]
+def get_consts(token_path):
+	TOKENS = json.load(open(token_path, "rb"))
 
-tweet_endpoint = "https://api.twitter.com/1.1/statuses/update.json"
-img_upload_endpoint = "https://upload.twitter.com/1.1/media/upload.json" # returns media_id which can be used with the tweet endpoint
+	KEYS = {
+		"api_key"             : TOKENS["tokens"]["twitter"]["api_key"],
+		"api_secret"          : TOKENS["tokens"]["twitter"]["api_secret"],
+		"access_token"        : TOKENS["tokens"]["twitter"]["access_token"],
+		"access_token_secret" : TOKENS["tokens"]["twitter"]["access_token_secret"]
+	}
 
-oauth = OAuth1(api_key, client_secret=api_secret, resource_owner_key=access_token, resource_owner_secret=access_token_secret)
+	OAUTH = OAuth1(KEYS["api_key"], client_secret=KEYS["api_secret"], resource_owner_key=KEYS["access_token"], \
+	        resource_owner_secret=KEYS["access_token_secret"])
+	
+	return {
+		"UPLOAD_ENDPOINT" : "https://upload.twitter.com/1.1/media/upload.json", # returns media_id which can be used with the tweet endpoint
+		"TWEET_ENDPOINT"  : "https://api.twitter.com/1.1/statuses/update.json",
+		"OAUTH"           : OAUTH
+	}
 
-class ImageUpload:
-	def __init__(self, img_path):
-		self.img = img_path
-		self.total_bytes = os.path.getsize(img_path)
-		self.media_id = None
-		self.processing_info = None
-		
-	def upload_init(self):
-		print("INIT")
 
-		request_data = {
+def prep_tweet(frame, msg, token_path):
+	consts = get_consts(token_path)
+	
+	def INIT(frame):
+		params = {
 			"command" : "INIT",
-			"media_type" : "image/png",
-			"total_bytes" : self.total_bytes,
-			"media_category" : "tweet_image"
+			"media_type" : "image/jpg",
+			"total_bytes" : os.path.getsize(frame)
 		}
+		
+		r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+		return r.json()["media_id"]
 
-		r = requests.post(url=img_upload_endpoint, data=request_data, auth=oauth)
-		self.media_id = r.json()["media_id"]
-		print(self.media_id)
-
-	def upload_append(self):
-		seg_id = 0
+	def APPEND(frame, id):
+		segment_id = 0
 		bytes_sent = 0
-		f = open(self.img, "rb")
 		
-		while bytes_sent < self.total_bytes:
-			chunk = f.read(4*1024*1024)
-			
-			print("APPEND")
-			
-			request_data = {
-				"command" : "APPEND",
-				"media_id" : self.media_id,
-				"segment_index" : seg_id
-			}
-			
-			files = {
-				"media" : chunk
-			}
-			
-			r = requests.post(url=img_upload_endpoint, data=request_data, files=files, auth=oauth)
-			
-			if r.status_code not in range (200, 300):
-				print(r.status_code)
-				print(r.text)
-				sys.exit(0)
-			
-			seg_id += 1
-			bytes_sent = f.tell()
-			
-			print(f"{bytes_sent} of {self.total_bytes} uploaded.")
-		
-		print("Upload chunks complete.")
-			
-	def upload_finalize(self):
-		print("FINALIZE")
-		
-		request_data = {
-			"command" : "FINALIZE",
-			"media_id" : self.media_id
-		}
-		
-		r = requests.post(url=img_upload_endpoint, data=request_data, auth=oauth)
-		print(r.json())
-		
-		self.processing_info = r.json().get("processing_info", None)
-		
-	def check_status(self):
-		if self.processing_info is None:
-			return
-		
-		state = self.processing_info["state"]
-		
-		print(f"Media processing status is {state}")
-		
-		if state == u'Succeeded':
-			return
-			
-		if state == u'failed':
-			sys.exit(0)
-			
-		check_after_secs = self.processing_info["check_after_secs"]
-		print(f"Checking after {check_after_secs} seconds.")
-		time.sleep(check_after_secs)
-		
-		print("STATUS")
-		
-		request_params = {
-			"command" : "STATUS"
-		}
-		
-		r = requests.get(url=img_upload_endpoint, params=request_params, auth=oauth)
-		
-		self.processing_info = r.json().get("processing_info", None)
-		check_status()
-		
-	def tweet(self):
-		request_data = {
-			"status" : common.common.msg,
-			"media_ids" : self.media_id
-		}
-		
-		r = requests.post(url=tweet_endpoint, data=request_data, auth=oauth)
-		print(r.json())
+		try:
+			with open(frame, "rb") as f:	
+				while bytes_sent < os.path.getsize(frame):
+					chunk = f.read(4*1024*1024)
 
-if __name__ == "__main__":
-	Tweet = ImageUpload(common.common.filename)
-	Tweet.upload_init()
-	Tweet.upload_append()
-	Tweet.upload_finalize()
-	#Tweet.tweet()
+					params = {
+						"command"       : "APPEND",
+						"media_id"      : id,
+						"segment_index" : segment_id
+					}
+				
+					files = {
+						"media" : chunk
+					}
+				
+					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"])
+				
+					segment_id += 1
+					bytes_sent = f.tell()
+		except requests.HTTPError as e:
+			print("Error! Chunk upload unsuccessful!")
+			print(e)
+			sys.exit(3)
+
+	def FINALIZE(id):
+		params = {
+			"command" : "FINALIZE",
+			"media_id" : id
+		}
+		
+		r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+	
+	def tweet(media_id, msg):
+		params = {
+			"media_ids" : media_id,
+			"status"    : msg
+		}
+
+		r = requests.post(url=consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
+		print(r.json())
+	
+	id = INIT(frame)
+	APPEND(frame, id)
+	FINALIZE(id)
+	tweet(id, msg)
+	
+
+def post(frame, msg, token_path):
+	prep_tweet(frame, msg, token_path)

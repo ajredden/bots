@@ -1,18 +1,34 @@
-import requests, sys, json
+# Exit codes:
+# -1: Unspecified error
+# 0: All clear
+# 1: Invalid argument
+# 2: Connection error
+# 3: Chunk upload unsuccessful
 
-sys.path.append("..")
+import json, requests
 
-import common.common
+def get_consts(token_path):
+	raw = json.load(open(token_path, "rb"))
+	API_KEY = raw["tokens"]["telegram"]["http_api_key"]
+	
+	return f"https://api.telegram.org/bot{API_KEY}/sendPhoto"
 
-raw = json.load(open("tokens.json", "rb"))
+def post(frame, msg, token_path):
+	IMG_SEND_ENDPOINT = get_consts(token_path)
+	print(IMG_SEND_ENDPOINT)
+	
+	params = {
+		"chat_id" : "@LainBot13",
+		"caption" : msg
+	}
+	
+	files = {
+		"photo" : open(frame, "rb")
+	}
 
-API_KEY = raw["tokens"]["telegram"]["http_api_key"]
-IMG_SEND_ENDPOINT = f"https://api.telegram.org/bot{API_KEY}/sendPhoto"
-
-params = {
-	"chat_id" : "@LainBot13",
-	"caption" : "Close the world, ƚxɘᴎ ɘʜƚ ᴎɘqO"
-}
-
-r = requests.post(url=f"{IMG_SEND_ENDPOINT}", files={"photo" : open(r"..\testing\test.png", "rb")}, data=params)
-print(r.json())
+	try:
+		r = requests.post(url=f"{IMG_SEND_ENDPOINT}", files=files, data=params)
+		print(r.json())
+	except requests.ConnectionError as e:
+		print("Error! Connection failed!")
+		sys.exit(2)
