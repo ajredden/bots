@@ -7,7 +7,7 @@
 # 2: Connection error
 # 3: Chunk upload unsuccessful
 
-import json, os.path, requests, sys
+import json, os.path, requests, sys, time
 from requests_oauthlib import OAuth1
 
 def get_consts(token_path):
@@ -30,7 +30,7 @@ def get_consts(token_path):
 	}
 
 
-def prep_tweet(frame, msg, token_path):
+def post(frame, msg, token_path):
 	consts = get_consts(token_path)
 	
 	def INIT(frame):
@@ -85,14 +85,10 @@ def prep_tweet(frame, msg, token_path):
 			"status"    : msg
 		}
 
-		r = requests.post(url=consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
-		print(r.json())
+		r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
+		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)} / id {json.dumps(r.json()['id'], sort_keys=True, indent=8)}\n")
 	
 	id = INIT(frame)
 	APPEND(frame, id)
 	FINALIZE(id)
 	tweet(id, msg)
-	
-
-def post(frame, msg, token_path):
-	prep_tweet(frame, msg, token_path)

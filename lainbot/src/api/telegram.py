@@ -5,7 +5,7 @@
 # 2: Connection error
 # 3: Chunk upload unsuccessful
 
-import json, requests
+import json, requests, time
 
 def get_consts(token_path):
 	raw = json.load(open(token_path, "rb"))
@@ -27,8 +27,8 @@ def post(frame, msg, token_path):
 	}
 
 	try:
-		r = requests.post(url=f"{IMG_SEND_ENDPOINT}", files=files, data=params)
-		print(r.json())
+		r = requests.post(IMG_SEND_ENDPOINT, files=files, data=params)
+		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] OK? {json.dumps(r.json()['ok'], sort_keys=True, indent=8)}\n")
 	except requests.ConnectionError as e:
 		print("Error! Connection failed!")
 		sys.exit(2)

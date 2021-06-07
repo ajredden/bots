@@ -66,15 +66,15 @@
 # r = requests.post(f"{IMG_POST_ENDPOINT}?access_token={ACCESS_TOKEN}&link={file_handle}")
 # print(r.json())
 
-import requests, json
+import requests, json, time
 
 def get_consts(token_path):
 	raw = json.load(open(token_path, "rb"))
-	ALBUM_ID                = "313864630294862"
+	ALBUM_ID = "313864630294862"
 	
 	return {
 		"ACCESS_TOKEN"      : raw["tokens"]["facebook"]["page"]["token"],
-		"IMG_POST_ENDPOINT" : f"https://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
+		"IMG_POST_ENDPOINT" : f"\thttps://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
 	}
 
 def post(frame, msg, token_path):
@@ -91,7 +91,7 @@ def post(frame, msg, token_path):
 	
 	try:
 		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files)
-		print(r.json())
+		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] {json.dumps(r.json(), sort_keys=True, indent=8)}\n")
 	except requests.ConnectionError as e:
 		print(f"Connection error! Could not upload {frame}!")
 		print(e)
