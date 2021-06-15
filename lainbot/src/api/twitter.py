@@ -7,7 +7,7 @@
 # 2: Connection error
 # 3: Chunk upload unsuccessful
 
-import json, os.path, requests, sys, time
+import json, os.path, requests, sys, time, msvcrt
 from requests_oauthlib import OAuth1
 
 def get_consts(token_path):
@@ -30,65 +30,125 @@ def get_consts(token_path):
 	}
 
 
-def post(frame, msg, token_path):
+def post(frame_dir, frame, msg, token_path, n=1):
 	consts = get_consts(token_path)
 	
-	def INIT(frame):
+	def INIT(frame_dir, frame):
 		params = {
-			"command" : "INIT",
-			"media_type" : "image/jpg",
-			"total_bytes" : os.path.getsize(frame)
+			"command"     : "INIT",
+			"media_type"  : "image/jpg",
+			"total_bytes" : os.path.getsize(f"{frame_dir}\\{frame}")
 		}
 		
-		r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
-		return r.json()["media_id"]
+		try:
+			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+			return r.json()["media_id"]
+		except requests.exceptions.ConnectionError as e:
+			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
+			print("Failed at INIT stage.")
+			with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
+			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			for s in range(n, 0, -1):
+				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
+				print("\b" * len(countdown), end="", flush=True)
+				print(countdown, end="", flush=True)
+				if msvcrt.kbhit(): 
+					msvcrt.getch()
+					break
+				time.sleep(1)
+			print()
+			post(frame_dir, frame, msg, token_path, n=n*2)
 
-	def APPEND(frame, id):
+	def APPEND(frame_dir, frame, id):
 		segment_id = 0
 		bytes_sent = 0
 		
-		try:
-			with open(frame, "rb") as f:	
-				while bytes_sent < os.path.getsize(frame):
-					chunk = f.read(4*1024*1024)
+		with open(f"{frame_dir}\\{frame}", "rb") as f:	
+			while bytes_sent < os.path.getsize(f"{frame_dir}\\{frame}"):
+				chunk = f.read(4*1024*1024)
 
-					params = {
-						"command"       : "APPEND",
-						"media_id"      : id,
-						"segment_index" : segment_id
-					}
+				params = {
+							"command"       : "APPEND",
+							"media_id"      : id,
+							"segment_index" : segment_id
+						}
 				
-					files = {
-						"media" : chunk
-					}
+				files = {
+							"media" : chunk
+						}
 				
+				try:
 					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"])
-				
+				except requests.exceptions.ConnectionError as e:
+					print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
+					print("Failed at APPEND stage.")
+					with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
+					print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+					for s in range(n, 0, -1):
+						countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
+						print("\b" * len(countdown), end="", flush=True)
+						print(countdown, end="", flush=True)
+						if msvcrt.kbhit(): 
+							msvcrt.getch()
+							break
+						time.sleep(1)
+					print()
+					post(frame_dir, frame, msg, token_path, n=n*2)
+				else:
 					segment_id += 1
 					bytes_sent = f.tell()
-		except requests.HTTPError as e:
-			print("Error! Chunk upload unsuccessful!")
-			print(e)
-			sys.exit(3)
 
 	def FINALIZE(id):
 		params = {
-			"command" : "FINALIZE",
+			"command"  : "FINALIZE",
 			"media_id" : id
 		}
 		
-		r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+		try:
+			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+		except requests.exceptions.ConnectionError as e:
+			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
+			print("Failed at FINALIZE stage.")
+			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			for s in range(n, 0, -1):
+				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
+				print("\b" * len(countdown), end="", flush=True)
+				print(countdown, end="", flush=True)
+				if msvcrt.kbhit():
+					msvcrt.getch()
+					break
+				time.sleep(1)
+			print()
+			post(frame_dir, frame, msg, token_path, n=n*2)
 	
 	def tweet(media_id, msg):
 		params = {
 			"media_ids" : media_id,
 			"status"    : msg
 		}
-
-		r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
-		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)} / id {json.dumps(r.json()['id'], sort_keys=True, indent=8)}\n")
-	
-	id = INIT(frame)
-	APPEND(frame, id)
+		
+		queue = []
+		
+		try:
+			r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
+			print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)} / id {json.dumps(r.json()['id'], sort_keys=True, indent=8)}\n")
+		except requests.exceptions.ConnectionError as e:
+			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
+			print("Failed at tweeting stage.")
+			with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
+			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			for s in range(n, 0, -1):
+				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
+				print("\b" * len(countdown), end="", flush=True)
+				print(countdown, end="", flush=True)
+				if msvcrt.kbhit(): 
+					msvcrt.getch()
+					break
+				time.sleep(1)
+			print()
+			post(frame_dir, frame, msg, token_path, n=n*2)
+			
+	id = INIT(frame_dir, frame)
+	APPEND(frame_dir, frame, id)
 	FINALIZE(id)
 	tweet(id, msg)

@@ -66,7 +66,7 @@
 # r = requests.post(f"{IMG_POST_ENDPOINT}?access_token={ACCESS_TOKEN}&link={file_handle}")
 # print(r.json())
 
-import requests, json, time
+import requests, json, time, sys, msvcrt
 
 def get_consts(token_path):
 	raw = json.load(open(token_path, "rb"))
@@ -77,11 +77,11 @@ def get_consts(token_path):
 		"IMG_POST_ENDPOINT" : f"\thttps://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
 	}
 
-def post(frame, msg, token_path):
+def post(frame_dir, frame, msg, token_path, n=1):
 	consts = get_consts(token_path)
 
 	files = {
-		"file" : open(frame, "rb")
+		"file" : open(f"{frame_dir}\\{frame}", "rb")
 	}
 
 	params = {
@@ -92,7 +92,17 @@ def post(frame, msg, token_path):
 	try:
 		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files)
 		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] {json.dumps(r.json(), sort_keys=True, indent=8)}\n")
-	except requests.ConnectionError as e:
-		print(f"Connection error! Could not upload {frame}!")
-		print(e)
-		sys.exit(2)
+	except requests.exceptions.ConnectionError as e:
+		print(f"Connection error! Could not upload {frame_dir}\\{frame} to Facebook!")
+		with open(".continue_from", "a") as f: f.write(f"\nfacebook|{frame_dir}\\{frame}")
+		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+		for s in range(n, 0, -1):
+			countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
+			print("\b" * len(countdown), end="", flush=True)
+			print(countdown, end="", flush=True)
+			if msvcrt.kbhit(): 
+				msvcrt.getch()
+				break
+			time.sleep(1)
+		print()
+		post(frame_dir, frame, msg, token_path, n=n*2)
