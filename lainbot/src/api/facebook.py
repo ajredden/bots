@@ -68,41 +68,40 @@
 
 import requests, json, time, sys, msvcrt
 
+sys.path.append("..")                                        # allows me to import from sibling and parent directories
+
+from common.common import log, countdown
+
 def get_consts(token_path):
-	raw = json.load(open(token_path, "rb"))
+	raw      = json.load(open(token_path, "rb"))
 	ALBUM_ID = "313864630294862"
 	
 	return {
 		"ACCESS_TOKEN"      : raw["tokens"]["facebook"]["page"]["token"],
-		"IMG_POST_ENDPOINT" : f"\thttps://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
+		"IMG_POST_ENDPOINT" : f"https://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
 	}
 
-def post(frame_dir, frame, msg, token_path, n=1):
+def post(path, caption, token_path, n=1):
 	consts = get_consts(token_path)
-
+	
 	files = {
-		"file" : open(f"{frame_dir}\\{frame}", "rb")
+		"file" : open(f"{path}", "rb")
 	}
-
+	
 	params = {
 		"access_token" : consts["ACCESS_TOKEN"],
-		"caption"      : msg
+		"caption"      : caption
 	}
 	
 	try:
 		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files)
-		print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] {json.dumps(r.json(), sort_keys=True, indent=8)}\n")
-	except requests.exceptions.ConnectionError as e:
-		print(f"Connection error! Could not upload {frame_dir}\\{frame} to Facebook!")
-		with open(".continue_from", "a") as f: f.write(f"\nfacebook|{frame_dir}\\{frame}")
-		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
-		for s in range(n, 0, -1):
-			countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-			print("\b" * len(countdown), end="", flush=True)
-			print(countdown, end="", flush=True)
-			if msvcrt.kbhit(): 
-				msvcrt.getch()
-				break
-			time.sleep(1)
+		log(f"Received code {r.status_code}.")
+		if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
+		else: log(f"{json.dumps(r.json()['post_id'], sort_keys=True, indent=4)}")
 		print()
-		post(frame_dir, frame, msg, token_path, n=n*2)
+	except requests.exceptions.ConnectionError as e:
+		log(f"Connection error! Could not upload {path} to Facebook!")
+		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+		countdown(n)
+		print()
+		post(path, caption, token_path, n=n*2)

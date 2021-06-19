@@ -3,3 +3,4 @@ lainbot/src/api/tokens.json
 lainbot/src/api/__pycache__/
 lainbot/src/__pycache__/
 lainbot/src/.continue_from
+lainbot/src/common/__pycache__/

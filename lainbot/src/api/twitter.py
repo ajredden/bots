@@ -10,6 +10,10 @@
 import json, os.path, requests, sys, time, msvcrt
 from requests_oauthlib import OAuth1
 
+sys.path.append("..")
+
+from common.common import log, countdown
+
 def get_consts(token_path):
 	TOKENS = json.load(open(token_path, "rb"))
 
@@ -30,41 +34,33 @@ def get_consts(token_path):
 	}
 
 
-def post(frame_dir, frame, msg, token_path, n=1):
+def post(path, caption, token_path, n=1):
 	consts = get_consts(token_path)
 	
-	def INIT(frame_dir, frame):
+	def INIT(path):
 		params = {
 			"command"     : "INIT",
 			"media_type"  : "image/jpg",
-			"total_bytes" : os.path.getsize(f"{frame_dir}\\{frame}")
+			"total_bytes" : os.path.getsize(path)
 		}
 		
 		try:
 			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
 			return r.json()["media_id"]
 		except requests.exceptions.ConnectionError as e:
-			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
-			print("Failed at INIT stage.")
-			with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
+			log(f"Connection Error! Could not upload frame {path} to Twitter!")
+			log("Failed at INIT stage.")
 			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
-			for s in range(n, 0, -1):
-				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-				print("\b" * len(countdown), end="", flush=True)
-				print(countdown, end="", flush=True)
-				if msvcrt.kbhit(): 
-					msvcrt.getch()
-					break
-				time.sleep(1)
+			countdown(n)
 			print()
-			post(frame_dir, frame, msg, token_path, n=n*2)
+			post(path, caption, token_path, n=n*2)
 
-	def APPEND(frame_dir, frame, id):
+	def APPEND(path, id):
 		segment_id = 0
 		bytes_sent = 0
 		
-		with open(f"{frame_dir}\\{frame}", "rb") as f:	
-			while bytes_sent < os.path.getsize(f"{frame_dir}\\{frame}"):
+		with open(path, "rb") as f:	
+			while bytes_sent < os.path.getsize(path):
 				chunk = f.read(4*1024*1024)
 
 				params = {
@@ -80,20 +76,12 @@ def post(frame_dir, frame, msg, token_path, n=1):
 				try:
 					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"])
 				except requests.exceptions.ConnectionError as e:
-					print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
-					print("Failed at APPEND stage.")
-					with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
+					log(f"Connection Error! Could not upload frame {path} to Twitter!")
+					log("Failed at APPEND stage.")
 					print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
-					for s in range(n, 0, -1):
-						countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-						print("\b" * len(countdown), end="", flush=True)
-						print(countdown, end="", flush=True)
-						if msvcrt.kbhit(): 
-							msvcrt.getch()
-							break
-						time.sleep(1)
+					countdown(n)
 					print()
-					post(frame_dir, frame, msg, token_path, n=n*2)
+					post(path, caption, token_path, n=n*2)
 				else:
 					segment_id += 1
 					bytes_sent = f.tell()
@@ -107,48 +95,37 @@ def post(frame_dir, frame, msg, token_path, n=1):
 		try:
 			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
 		except requests.exceptions.ConnectionError as e:
-			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
-			print("Failed at FINALIZE stage.")
+			log(f"Connection Error! Could not upload frame {path} to Twitter!")
+			log("Failed at FINALIZE stage.")
 			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
-			for s in range(n, 0, -1):
-				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-				print("\b" * len(countdown), end="", flush=True)
-				print(countdown, end="", flush=True)
-				if msvcrt.kbhit():
-					msvcrt.getch()
-					break
-				time.sleep(1)
+			countdown(n)
 			print()
-			post(frame_dir, frame, msg, token_path, n=n*2)
+			post(path, caption, token_path, n=n*2)
 	
-	def tweet(media_id, msg):
+	def tweet(media_id, caption):
 		params = {
 			"media_ids" : media_id,
-			"status"    : msg
+			"status"    : caption
 		}
 		
 		queue = []
 		
 		try:
 			r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
-			print(f"\t[{time.strftime('%d/%m/%y %H:%M:%S')}] created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)} / id {json.dumps(r.json()['id'], sort_keys=True, indent=8)}\n")
-		except requests.exceptions.ConnectionError as e:
-			print(f"Connection Error! Could not upload frame {frame_dir}\\{frame} to Twitter!")
-			print("Failed at tweeting stage.")
-			with open(".continue_from", "a") as f: f.write(f"\ntwitter|{frame_dir}\\{frame}")
-			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
-			for s in range(n, 0, -1):
-				countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-				print("\b" * len(countdown), end="", flush=True)
-				print(countdown, end="", flush=True)
-				if msvcrt.kbhit(): 
-					msvcrt.getch()
-					break
-				time.sleep(1)
+			log(f"Received code {r.status_code}.")
+			if r.status_code in range(500, 505): raise requests.exceptions.ConnectionError         # 500 errors are typically temporary
+			if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
+			else: log(f"created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)}\n\t\t\tid {json.dumps(r.json()['id'], sort_keys=True, indent=4)}")
 			print()
-			post(frame_dir, frame, msg, token_path, n=n*2)
+		except requests.exceptions.ConnectionError as e:
+			log(f"Connection Error! Could not upload frame {path} to Twitter!")
+			log("Failed at tweeting stage.")
+			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			countdown(n)
+			print()
+			post(path, caption, token_path, n=n*2)
 			
-	id = INIT(frame_dir, frame)
-	APPEND(frame_dir, frame, id)
+	id = INIT(path)
+	APPEND(path, id)
 	FINALIZE(id)
-	tweet(id, msg)
+	tweet(id, caption)

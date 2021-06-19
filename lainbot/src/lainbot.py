@@ -10,124 +10,116 @@
 
 import os, os.path, sys, time, requests
 
-import api.facebook, api.twitter, api.telegram
+import api.telegram, api.facebook, api.twitter, common.common
+from common.common import log
 
-FRAMES_DIR = r"D:\lainbot"
-TOKEN_PATH = r"api\tokens.json"
-SITES_POSTED_TO = ["facebook", "twitter", "telegram"]
+FRAMES_DIR    = r"D:\lainbot"
+TOKEN_PATH    = r"api\tokens.json"
 DELAY_SECONDS = 60
 
 class Upload:
 	def __init__(self):
 		self.dir_tree = os.walk(FRAMES_DIR)
-
+	
 	def get_next_frame(self):
-		for dir in self.dir_tree:
-			if dir[1]:
-				continue
+		for tup in self.dir_tree:                              # tuple is of the form (dirpath, directories, files)
+			if tup[1]:                                         # if the current directory has other directories in it
+				continue                                       # advance the iterator (explore the next directory)
+				
+			lastFile = tup[2][-1]
+			for file in os.scandir(tup[0]):                    # iterator returns a DirEntry object, but I'm only interested in two attributes of the object, so...
+				yield (file.path, tup[0], file.name, lastFile) # yield a tuple containing the attributes I need (plus a little bit more information)
 
-			lastFile = dir[2][-1]
-			for file in os.scandir(dir[0]):
-				yield (file.path, file.name, lastFile)
-
-def check_queued_frames(confirm=False):
-	with open(".continue_from", "r") as f:
-		restart_frame = ":".join(f.readline().split(":")[1:]).strip()
-		if not confirm:
-			print(f"Continue from frame {restart_frame}? (Y / N)")
-		else:
-			print(f"Start from the beginning? (Y / N)")
-		
-		choice = input("> ").lower()
-		
-		while choice != "y" and choice != "n":
-			return check_queued_frames(confirm=confirm)
-			
-		if choice == "y":
-			if not confirm:
-				print(f"Continuing from frame {restart_frame}.")
-				f.seek(0)
-				lines = f.readlines()
-				return {k.split(":")[0] : (":".join(k.split(":")[1:]).strip()) for k in lines}
-			else:
-				return { "facebook" : "D:\lainbot\Layer 01; Weird\00000001.jpg",
-						 "twitter"  : "D:\lainbot\Layer 01; Weird\00000001.jpg",
-						 "telegram" : "D:\lainbot\Layer 01; Weird\00000001.jpg"
-					   }
-		else:
-			if not confirm:
-				return check_queued_frames(confirm=True)
-			else:
-				sys.exit(0)
-
-def post_to(site, frame_dir, frame, msg, token_path):
-	print("Posting frame", frame_dir, frame, "to", site.capitalize())
-	if site == "facebook":
-		api.facebook.post(frame_dir, frame, msg, token_path)
-	elif site == "twitter":
-		api.twitter.post(frame_dir, frame, msg, token_path)
-	elif site == "telegram":
-		api.telegram.post(frame_dir, frame, msg, token_path)
+def check_queued_frame(frame, confirm=False):
+	# this function could be better. it's pretty confusing
+	
+	if not confirm:
+		print(f"Continue from frame {frame}? (Y / N)")
 	else:
-		print("Error: website not recognised.")
+		print(f"Start from the beginning? (Y / N)")
+	
+	choice = input("> ").lower()
+	
+	while choice not in "yn":
+		return check_queued_frame(frame, confirm=confirm)
+	
+	if choice == "y":
+		if not confirm:
+			print(f"Continuing from frame {frame}.")
+			return frame
+		else:
+			return r"D:\lainbot\Layer 01; Weird\00000001.jpg"
+	else:
+		if not confirm:
+			return check_queued_frame(frame, confirm=True)
+		else:
+			sys.exit(0)
+
+def post_all(frame_path, frame_head, frame_tail, last_frame):
+	# encapsulates the three calls to the APIs
+	caption = get_caption(frame_head, frame_tail, last_frame)
+	print(caption)
+	post_to("telegram", frame_path, caption)
+	post_to("facebook", frame_path, caption)
+	post_to("twitter",  frame_path, caption)
+
+def post_to(site, path, caption):
+	# calls the appropriate .post() function depending on the passed site
+	log(f"Posting frame {path} to {site.capitalize()}.")
+	if site == "telegram":
+		api.telegram.post(path, caption, TOKEN_PATH)
+	elif site == "facebook":
+		api.facebook.post(path, caption, TOKEN_PATH)
+	elif site == "twitter":
+		api.twitter.post(path, caption, TOKEN_PATH)
+	else:
+		log("Error: website not recognised.")
 		sys.exit(4)
 
-def post_all(frame_path, token_path, delay=DELAY_SECONDS):
-	frame_dir = "\\".join(frame_path.split("\\")[:-1])
-	frame = frame_path.split("\\")[-1]
+def get_caption(frame_head, frame_tail, last_frame):
+	# create and return the message posted alongside each photo, including any CWs
+	episode_name = get_episode_name(frame_head)
+	frame_number = frame_tail.lstrip('0').rstrip(".jpg")
+	
+	return f"{common.common.check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}"
 
-	if frame_dir.startswith("z_"):
-		episode_name = frame_dir.split("\\")[-1].replace("z_", "") + "\\" + frame_dir.split("\\")[-1].replace(";", ":")
+def get_episode_name(path):
+	# usually, the episode name is just a directory name with any semi-colons replaced with colons.
+	# however, there is an edge case, entirely created by myself for stylistic reasons, where an "episode name"
+	# can actually consist of two elements: "first_directory_name/second_directory_name"
+	# this edge case is made more complex by first_directory_name starting with "z_", because I wanted the frames in this directory 
+	# to be posted AFTER the rest of the episodes, but with an episode number 00, which would usually place it BEFORE the other episodes
+	# (as I said, completely my doing)
+	# this function just deals with that edge case without making everything else look ugly
+	if path.split("\\")[-2].startswith("z_"):
+		return (path.split("\\")[-2] + "/" + path.split("\\")[-1]).replace("z_", "").replace(";", ":")
 	else:
-		episode_name = frame_dir.split("\\")[-1].replace(";", ":")
-	
-	current_frame = frame.lstrip('0').rstrip(".jpg")
-	final_frame   = os.listdir(frame_dir)[-1].lstrip('0').rstrip(".jpg")
-
-	msg = f"{episode_name}, frame {current_frame} / {final_frame}"
-
-	print(msg)
-	
-	post_to("facebook", frame_dir, frame, msg, token_path)
-	post_to("twitter", frame_dir, frame, msg, token_path)
-	post_to("telegram", frame_dir, frame, msg, token_path)
+		return (path.split("\\")[-1]).replace(";", ":")
 
 def main():
 	try:
-		check_queued_frames()
-		UploadObj = Upload()
+		UploadObj          = Upload()                                          # perhaps this class and object could be named more clearly
+		flag_skip          = True
+		continue_from_path = check_queued_frame(open(".continue_from").read()) # .continue_from is a simple text file containing the path to the frame to be continued from and nothing else
+		                                                                       # eventually I'll probably implement this as a command-line argument instead
 		
-		with open(".continue_from") as q:
-			for line in q.readlines():
-				site = line.split("|")[0]
-				current_path = line.split("|")[1].strip()
-				current_frame_dir = "\\".join(current_path.split("\\")[:-1])
-				current_frame = line.split("\\")[-1]
-				 
-				ext = ".jpg\n"
-				bs = "\\"
-				next_frame = f"{(int(current_frame.rstrip(ext)) + 1):0>8}.jpg"
-				next_path = f"{current_frame_dir}\\{next_frame}"
-				msg = f"{current_frame_dir.split(bs)[-1].replace(';', ':')}, frame {current_frame.lstrip('0').rstrip('.jpg')} / {os.listdir(current_frame_dir)[-1].lstrip('0').rstrip('.jpg')}"
-				print(f"Uploading {next_path} to {site.capitalize()}.")
-				
-				post_to(site, current_frame_dir, next_frame, msg, TOKEN_PATH)
-				latest = f"{current_frame_dir}\\{next_frame:0>8}"
+		for frame_properties_iter in UploadObj.get_next_frame():
+			current_frame_path    = frame_properties_iter[0]                   # clearer variable names
+			current_frame_head    = frame_properties_iter[1]
+			current_frame_tail    = frame_properties_iter[2]
+			last_frame_in_episode = frame_properties_iter[3].strip("0").strip(".jpg\n")
 			
-		flag_skip = True
-		for frame_iter in UploadObj.get_next_frame():
-			if frame_iter[0] != latest and flag_skip:
+			if current_frame_path != continue_from_path and flag_skip:        # this part of the loop quickly skips through any frames that have already been uploaded
+				print(f"Skipping frame {current_frame_path}...")              # (without uploading them a second time)
 				continue
 			flag_skip = False
-			time.sleep(1)
-			post_all(frame_iter[0], TOKEN_PATH)
+			
+			post_all(current_frame_path, current_frame_head, current_frame_tail, last_frame_in_episode)
 			print("-"*50)
+			
 			time.sleep(DELAY_SECONDS)
-	except StopIteration as e:
-		print("Success! Posted all SEL frames!")
-	#except Exception as e:
-	#	print("An unspecified error occurred.")
-	#	print(e)
-	#	sys.exit(-1)
+	except StopIteration:                                                    # all synchronous iterators raise this exception when they contain no more elements
+		print("Success! Posted all SEL frames!")                             # (in this case the iterator runs out when it has no more frames to post)
 
-main()
+if __name__ == "__main__":
+	main()
