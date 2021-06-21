@@ -8,7 +8,7 @@ def check_cw(ep, frame):
 			ret = "sui"
 		if frame in range(6171, 6246) or frame in range(6330, 6450):
 			ret = "sui, blood"
-		if frame in range(11791, 11831) or frame in range(20381, 20453):
+		if frame in range(11771, 11831) or frame in range(20381, 20453):
 			ret = "sui mention"
 		if frame in range(13273, 13457):
 			ret = "body horror"
