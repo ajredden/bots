@@ -96,7 +96,8 @@ def post(path, caption, token_path, n=1):
 	try:
 		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files)
 		log(f"Received code {r.status_code}.")
-		if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
+		if r.status_code == 408: raise requests.exceptions.ConnectionError                       # If this becomes a problem I'll troubleshoot it properly
+		elif r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
 		else: log(f"{json.dumps(r.json()['post_id'], sort_keys=True, indent=4)}")
 		print()
 	except requests.exceptions.ConnectionError as e:
