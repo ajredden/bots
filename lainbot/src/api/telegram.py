@@ -37,7 +37,7 @@ def post(path, caption, token_path, n=1):
 		if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=8)}")
 		else: log(f"OK? {json.dumps(r.json()['ok'], sort_keys=True, indent=8)}")
 		print()
-	except requests.exceptions.ConnectionError as e:	
+	except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):	
 		log(f"Connection Error! Could not upload frame {path} to Telegram!")
 		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
 		countdown(n)

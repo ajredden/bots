@@ -100,7 +100,7 @@ def post(path, caption, token_path, n=1):
 		elif r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
 		else: log(f"{json.dumps(r.json()['post_id'], sort_keys=True, indent=4)}")
 		print()
-	except requests.exceptions.ConnectionError as e:
+	except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 		log(f"Connection error! Could not upload {path} to Facebook!")
 		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
 		countdown(n)

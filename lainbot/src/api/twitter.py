@@ -47,7 +47,7 @@ def post(path, caption, token_path, n=1):
 		try:
 			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
 			return r.json()["media_id"]
-		except requests.exceptions.ConnectionError as e:
+		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at INIT stage.")
 			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
@@ -75,7 +75,7 @@ def post(path, caption, token_path, n=1):
 				
 				try:
 					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"])
-				except requests.exceptions.ConnectionError as e:
+				except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 					log(f"Connection Error! Could not upload frame {path} to Twitter!")
 					log("Failed at APPEND stage.")
 					print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
@@ -94,7 +94,7 @@ def post(path, caption, token_path, n=1):
 		
 		try:
 			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
-		except requests.exceptions.ConnectionError as e:
+		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at FINALIZE stage.")
 			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
@@ -117,7 +117,7 @@ def post(path, caption, token_path, n=1):
 			if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")
 			else: log(f"created_at {json.dumps(r.json()['created_at'], sort_keys=True, indent=4)}\n\t\t\tid {json.dumps(r.json()['id'], sort_keys=True, indent=4)}")
 			print()
-		except requests.exceptions.ConnectionError as e:
+		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at tweeting stage.")
 			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
