@@ -32,7 +32,7 @@ def post(path, caption, token_path, n=1):
 	queue = []
 	
 	try:
-		r = requests.post(IMG_SEND_ENDPOINT, files=files, data=params)
+		r = requests.post(IMG_SEND_ENDPOINT, files=files, data=params, timeout=60)
 		log(f"Received code {r.status_code}.")
 		if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=8)}")
 		else: log(f"OK? {json.dumps(r.json()['ok'], sort_keys=True, indent=8)}")

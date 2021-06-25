@@ -45,7 +45,7 @@ def post(path, caption, token_path, n=1):
 		}
 		
 		try:
-			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"], timeout=60)
 			return r.json()["media_id"]
 		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
@@ -74,7 +74,7 @@ def post(path, caption, token_path, n=1):
 						}
 				
 				try:
-					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"])
+					r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, files=files, auth=consts["OAUTH"], timeout=60)
 				except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 					log(f"Connection Error! Could not upload frame {path} to Twitter!")
 					log("Failed at APPEND stage.")
@@ -93,7 +93,7 @@ def post(path, caption, token_path, n=1):
 		}
 		
 		try:
-			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"])
+			r = requests.post(consts["UPLOAD_ENDPOINT"], data=params, auth=consts["OAUTH"], timeout=60)
 		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at FINALIZE stage.")
@@ -111,7 +111,7 @@ def post(path, caption, token_path, n=1):
 		queue = []
 		
 		try:
-			r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"])
+			r = requests.post(consts["TWEET_ENDPOINT"], data=params, auth=consts["OAUTH"], timeout=60)
 			log(f"Received code {r.status_code}.")
 			if r.status_code in range(500, 505): raise requests.exceptions.ConnectionError         # 500 errors are typically temporary
 			if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")

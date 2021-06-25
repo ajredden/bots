@@ -79,7 +79,7 @@ def post_to(site, path, caption):
 def get_caption(frame_head, frame_tail, last_frame):
 	# create and return the message posted alongside each photo, including any CWs
 	episode_name = get_episode_name(frame_head)
-	frame_number = frame_tail.lstrip('0').rstrip(".jpg")
+	frame_number = frame_tail.lstrip("0").rstrip(".jpg")
 	
 	return f"{common.common.check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}"
 
@@ -107,7 +107,7 @@ def main():
 			current_frame_path    = frame_properties_iter[0]                   # clearer variable names
 			current_frame_head    = frame_properties_iter[1]
 			current_frame_tail    = frame_properties_iter[2]
-			last_frame_in_episode = frame_properties_iter[3].strip("0").strip(".jpg\n")
+			last_frame_in_episode = frame_properties_iter[3].lstrip("0").rstrip(".jpg\n")
 			
 			if current_frame_path != continue_from_path and flag_skip:        # this part of the loop quickly skips through any frames that have already been uploaded
 				print(f"Skipping frame {current_frame_path}...")              # (without uploading them a second time)
