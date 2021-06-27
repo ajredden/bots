@@ -8,7 +8,7 @@
 # 3: Chunk upload unsuccessful
 # 4: Invalid website supplied for upload
 
-import os, os.path, sys, time, requests
+import os, sys, time
 
 import api.telegram, api.facebook, api.twitter, common.common
 from common.common import log

@@ -66,7 +66,7 @@
 # r = requests.post(f"{IMG_POST_ENDPOINT}?access_token={ACCESS_TOKEN}&link={file_handle}")
 # print(r.json())
 
-import requests, json, time, sys, msvcrt
+import requests, json, sys
 
 sys.path.append("..")                                        # allows me to import from sibling and parent directories
 

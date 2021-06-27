@@ -5,7 +5,7 @@
 # 2: Connection error
 # 3: Chunk upload unsuccessful
 
-import json, requests, time, sys, msvcrt
+import json, requests, sys
 
 sys.path.append("..")
 

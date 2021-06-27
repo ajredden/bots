@@ -7,7 +7,7 @@
 # 2: Connection error
 # 3: Chunk upload unsuccessful
 
-import json, os.path, requests, sys, time, msvcrt
+import json, os.path, requests, sys
 from requests_oauthlib import OAuth1
 
 sys.path.append("..")
