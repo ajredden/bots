@@ -81,7 +81,7 @@ def get_caption(frame_head, frame_tail, last_frame):
 	episode_name = get_episode_name(frame_head)
 	frame_number = frame_tail.lstrip("0").rstrip(".jpg")
 	
-	return f"{common.common.check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}"
+	return f"{common.common.check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}{' (nice)' if int(frame_number) == 6969 else ''}"
 
 def get_episode_name(path):
 	# usually, the episode name is just a directory name with any semi-colons replaced with colons.
