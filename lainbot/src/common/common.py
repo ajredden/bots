@@ -13,16 +13,18 @@ def check_cw(ep, frame):
 		if frame in range(13273, 13457):
 			ret = "body horror"
 	elif ep == "Layer 02: Girls":
-		if frame in range(24954, 24992) or frame in range(25560, 25854) or frame in range(26873, 26902) \
-				or frame in range(27633, 27653) or frame in range(27821, 28117) or frame in range(28165, 28257) \
-				or frame in range(28329, 28405):
+		if frame in range(1519, 2215) :
+			ret = "drug use"
+		if frame in range(12154, 12252) or frame in range(12494, 12767) or frame in range(12901, 13015) \
+				or frame in range(13047, 13114) or frame in range(13159, 13287) or frame in range(13311, 13702) \
+				or frame in range(13720, 13777) or frame in range(14209, 14388):
 			ret = "gun violence"
-		if frame in range(25390, 25481) or frame in range(26514, 26541) or frame in range(28587, 28641) \
+		if frame in range(12407, 12483) or frame in range(13015, 13032) or frame in range(14051, 14058) \
 				or frame in range(28758, 28866):
 			ret = "blood"
-		if frame in range(28507, 28581) or frame in range(28641, 28687) or frame in range(28867, 29154):
+		if frame in range(13849, 14031) or frame in range(14058, 14074) or frame in range(28867, 29154):
 			ret = "gun violence, sui"
-		if frame in range(28687, 28758):
+		if frame in range(14082, 14208):
 			ret = "sui, blood"
 	elif ep == "Layer 03: Psyche":
 		pass

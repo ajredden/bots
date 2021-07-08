@@ -73,12 +73,17 @@ sys.path.append("..")                                        # allows me to impo
 from common.common import log, countdown
 
 def get_consts(token_path):
-	raw      = json.load(open(token_path, "rb"))
-	ALBUM_ID = "313864630294862"
+	raw               = json.load(open(token_path, "rb"))
+	ALBUM_ID          = "313864630294862"
+	
+	ACCESS_TOKEN      = raw["tokens"]["facebook"]["page"]["token"]
+	IMG_POST_ENDPOINT = f"https://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
+	TIMEOUT           = 60
 	
 	return {
-		"ACCESS_TOKEN"      : raw["tokens"]["facebook"]["page"]["token"],
-		"IMG_POST_ENDPOINT" : f"https://graph.facebook.com/v10.0/{ALBUM_ID}/photos"
+		"ACCESS_TOKEN"      : ACCESS_TOKEN,
+		"IMG_POST_ENDPOINT" : IMG_POST_ENDPOINT,
+		"TIMEOUT"           : TIMEOUT
 	}
 
 def post(path, caption, token_path, n=1):
@@ -94,7 +99,7 @@ def post(path, caption, token_path, n=1):
 	}
 	
 	try:
-		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files, timeout=60)
+		r = requests.post(f"{consts['IMG_POST_ENDPOINT']}", data=params, files=files, timeout=consts["TIMEOUT"])
 		log(f"Received code {r.status_code}.")
 		if r.status_code == 408: raise requests.exceptions.ConnectionError                       # If this becomes a problem I'll troubleshoot it properly
 		elif r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=4)}")

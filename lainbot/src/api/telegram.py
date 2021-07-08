@@ -15,10 +15,16 @@ def get_consts(token_path):
 	raw = json.load(open(token_path, "rb"))
 	API_KEY = raw["tokens"]["telegram"]["http_api_key"]
 	
-	return f"https://api.telegram.org/bot{API_KEY}/sendPhoto"
+	IMG_SEND_ENDPOINT = f"https://api.telegram.org/bot{API_KEY}/sendPhoto"
+	TIMEOUT = 60
+	
+	return {
+		"IMG_SEND_ENDPOINT" : IMG_SEND_ENDPOINT,
+		"TIMEOUT"           : TIMEOUT
+	}
 
 def post(path, caption, token_path, n=1):
-	IMG_SEND_ENDPOINT = get_consts(token_path)
+	consts = get_consts(token_path)
 	
 	params = {
 		"chat_id" : "@LainBot13",
@@ -32,7 +38,7 @@ def post(path, caption, token_path, n=1):
 	queue = []
 	
 	try:
-		r = requests.post(IMG_SEND_ENDPOINT, files=files, data=params, timeout=60)
+		r = requests.post(consts["IMG_SEND_ENDPOINT"], files=files, data=params, timeout=consts["TIMEOUT"])
 		log(f"Received code {r.status_code}.")
 		if r.status_code != 200: log(f"{json.dumps(r.json(), sort_keys=True, indent=8)}")
 		else: log(f"OK? {json.dumps(r.json()['ok'], sort_keys=True, indent=8)}")
