@@ -45,7 +45,7 @@ def post(path, caption, token_path, n=1):
 		print()
 	except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):	
 		log(f"Connection Error! Could not upload frame {path} to Telegram!")
-		print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+		log(f"Trying again in {n} seconds. (Press any button to try again now.)", flush=True)
 		countdown(n)
 		print()
 		post(path, caption, token_path, n=n*2)

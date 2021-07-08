@@ -54,14 +54,14 @@ def check_cw(ep, frame):
 	if ret: ret = f"(cw: {ret})\n\n"
 	return ret
 
-def log(msg, file=sys.stdout):
-	print(f"[{time.strftime('%d/%m/%y %H:%M:%S')}]\t{msg}", file=file)
+def log(msg, file=sys.stdout, flush=False):
+	print(f"[{time.strftime('%d/%m/%y %H:%M:%S')}]\t{msg}", file=file, flush=flush)
 
 def countdown(n):
 	for s in range(n, 0, -1):
-		countdown = f"Trying again in {s} seconds. (Press any button to try again now.)"
-		print("\b" * len(countdown), end="", flush=True)
-		print(countdown, end="", flush=True)
+		countdownMsg = f"[{time.strftime('%d/%m/%y %H:%M:%S')}]     Trying again in {s} seconds. (Press any button to try again now.)"
+		print("\b" * (len(countdownMsg)+1), end="", flush=True)
+		print(countdownMsg, end="", flush=True)
 		if msvcrt.kbhit():                                   # essentially acts as non-blocking input, allowing me to have a countdown
 			msvcrt.getch()                                   # whilst still allowing the user to forcefully retry a connection
 			break

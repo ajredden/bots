@@ -45,7 +45,7 @@ def check_queued_frame(frame, confirm=False):
 	
 	if choice == "y":
 		if not confirm:
-			print(f"Continuing from frame {frame}.")
+			log(f"Continuing from frame {frame}.")
 			return frame
 		else:
 			return r"D:\lainbot\Layer 01; Weird\00000001.jpg"
@@ -110,12 +110,13 @@ def main():
 			last_frame_in_episode = frame_properties_iter[3].lstrip("0").rstrip(".jpg\n")
 			
 			if current_frame_path != continue_from_path and flag_skip:        # this part of the loop quickly skips through any frames that have already been uploaded
-				print(f"Skipping frame {current_frame_path}...")              # (without uploading them a second time)
+				log(f"Skipping frame {current_frame_path}...")                # (without uploading them a second time)
 				continue
+			if flag_skip: print("\n" + "-"*64)                                # gross
 			flag_skip = False
 			
 			post_all(current_frame_path, current_frame_head, current_frame_tail, last_frame_in_episode)
-			print("-"*50)
+			print("-"*64)
 			
 			time.sleep(DELAY_SECONDS)
 	except StopIteration:                                                    # all synchronous iterators raise this exception when they contain no more elements

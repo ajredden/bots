@@ -55,7 +55,7 @@ def post(path, caption, token_path, n=1):
 		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at INIT stage.")
-			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			log(f"Trying again in {n} seconds. (Press any button to try again now.)", flush=True)
 			countdown(n)
 			print()
 			post(path, caption, token_path, n=n*2)
@@ -83,7 +83,7 @@ def post(path, caption, token_path, n=1):
 				except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 					log(f"Connection Error! Could not upload frame {path} to Twitter!")
 					log("Failed at APPEND stage.")
-					print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+					log(f"Trying again in {n} seconds. (Press any button to try again now.)", flush=True)
 					countdown(n)
 					print()
 					post(path, caption, token_path, n=n*2)
@@ -102,7 +102,7 @@ def post(path, caption, token_path, n=1):
 		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at FINALIZE stage.")
-			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			log(f"Trying again in {n} seconds. (Press any button to try again now.)", flush=True)
 			countdown(n)
 			print()
 			post(path, caption, token_path, n=n*2)
@@ -125,7 +125,7 @@ def post(path, caption, token_path, n=1):
 		except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
 			log(f"Connection Error! Could not upload frame {path} to Twitter!")
 			log("Failed at tweeting stage.")
-			print(f"Trying again in {n} seconds. (Press any button to try again now.)", end="", flush=True)
+			log(f"Trying again in {n} seconds. (Press any button to try again now.)", flush=True)
 			countdown(n)
 			print()
 			post(path, caption, token_path, n=n*2)
