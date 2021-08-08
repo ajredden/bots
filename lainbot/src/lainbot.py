@@ -81,7 +81,14 @@ def get_caption(frame_head, frame_tail, last_frame):
 	episode_name = get_episode_name(frame_head)
 	frame_number = frame_tail.lstrip("0").rstrip(".jpg")
 	
-	return f"{check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}{' (nice)' if int(frame_number) == 69 or int(frame_number) == 6969 else ''}"
+	if int(frame_number) == 69 or int(frame_number) == 6969:
+		bonus = " (nice)"
+	elif int(frame_number) == 32594 and episode_name == "Layer 01: Weird":
+		bonus = " (pls no ban ty)"
+	else:
+		bonus = ""
+	
+	return f"{check_cw(episode_name, frame_number)}{episode_name}, frame {frame_number} / {last_frame}{bonus}"
 
 def get_episode_name(path):
 	# usually, the episode name is just a directory name with any semi-colons replaced with colons.

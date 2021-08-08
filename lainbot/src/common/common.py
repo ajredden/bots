@@ -27,9 +27,15 @@ def check_cw(ep, frame):
 		if frame in range(14082, 14208):
 			ret = "sui, blood"
 	elif ep == "Layer 03: Psyche":
-		pass
+		if frame in range(456, 483):
+			ret = "blood"
+		if frame in range(495, 514):
+			ret = "gun violence"
 	elif ep == "Layer 04: Religion":
-		pass
+		if frame in range(3141, 3162) or frame in range(3298, 3306):
+			ret = "sui mention"
+		if frame in range(8812, 8839):
+			ret = "blood"
 	elif ep == "Layer 05: Distortion":
 		pass
 	elif ep == "Layer 06: KIDS":
